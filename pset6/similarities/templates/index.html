@@ -5,7 +5,13 @@
     <div class="col">
         <form action="/compare" enctype="multipart/form-data" method="post">
 
-            <!-- TODO -->
+            <input type="file" name="file1"><br>
+            <input type="file" name="file2"><br>
+            <input type="radio" name="algorithm" value="lines">Lines<br>
+            <input type="radio" name="algorithm" value="sentences">Sentences<br>
+            <input type="radio" name="algorithm" value="substrings">Substrings of length
+            <input id="length" type="number" name="length" value="2"><br>
+            <input type="submit" value="Compare">
 
         </form>
     </div>

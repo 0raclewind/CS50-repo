@@ -22,6 +22,11 @@ div.col
 {
     padding-left: 0;
     padding-right: 0;
+    display: block;
+}
+
+div.col * {
+    margin-top: 10px;
 }
 
 /* add padding around form */
@@ -43,4 +48,10 @@ pre
 span
 {
     background-color: #ff0;
+}
+
+#length {
+    width: 50px;
+    margin-left: 10px;
+    text-align: center;
 }
