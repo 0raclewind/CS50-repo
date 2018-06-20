@@ -118,8 +118,16 @@ def quote():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    # INSERT INTO "users" ("id","username","hash") VALUES ('1','bordax',md5('dasd'))
     """Register user"""
-    return apology("TODO")
+    username = request.form.get("username")
+    password = request.form.get("password")
+    password_repeat = request.form.get("password-repeat")
+
+    if request == 'POST':
+        db.execute('INSERT INTO "users" ("id","username","hash") VALUES (?, md5(?))',
+            (username, password))
+    return render_template('register.html')
 
 
 @app.route("/sell", methods=["GET", "POST"])
