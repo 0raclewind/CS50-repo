@@ -9,6 +9,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd
 
+os.environ["API_KEY"] = 'JPJJ4M180WH7DV59'
+
 # Ensure environment variable is set
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
@@ -44,7 +46,7 @@ db = SQL("sqlite:///finance.db")
 @login_required
 def index():
     """Show portfolio of stocks"""
-    return apology("TODO")
+    return render_template("home.html")
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -84,7 +86,8 @@ def login():
                           username=request.form.get("username"))
 
         # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
+        if len(rows) != 1 or not check_password_hash(rows[0]["hash"],\
+            request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
@@ -118,17 +121,27 @@ def quote():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # INSERT INTO "users" ("id","username","hash") VALUES ('1','bordax',md5('dasd'))
     """Register user"""
-    username = request.form.get("username")
-    password = request.form.get("password")
-    password_repeat = request.form.get("password-repeat")
+    if request.method == 'POST':
+        username = request.form.get("username")
+        password = request.form.get("password")
+        password_repeat = request.form.get("confirmation")
+        if username == '' or password == '' or password_repeat == '':
+            return apology("Fields cannot be blank.")
+        elif password != password_repeat:
+            return apology("Passwords didn't match.")
+        else:
+            user = db.execute('SELECT * FROM users WHERE username = :user', user=username)
+            if user:
+                return apology("User already exists.")
+            else:
+                user_id = db.execute('INSERT INTO users (username, hash) VALUES (:username, :hash)',
+                    username=username, hash=generate_password_hash(password))
+                # session["user_id"] = user_id
+                return redirect("/login")
 
-    if request == 'POST':
-        db.execute('INSERT INTO "users" ("id","username","hash") VALUES (?, md5(?))',
-            (username, password))
-    return render_template('register.html')
-
+    else:
+        return render_template('register.html')
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
