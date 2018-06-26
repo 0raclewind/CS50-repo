@@ -45,3 +45,24 @@ main img
     /* constrain images on small screens */
     max-width: 50%;
 }
+
+main .stock-query {
+    margin-top: 20px;
+}
+
+main .message
+{
+    height: 32px;
+    width: 500px;
+    top: 85px;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    position: absolute;
+    margin-right:auto;
+    margin-left: auto;
+    background-color: #e0ffd7;
+    padding: 5px;
+    border-radius: 10px;
+    color: #777;
+}

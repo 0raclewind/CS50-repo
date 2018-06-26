@@ -5,7 +5,19 @@
 {% endblock %}
 
 {% block main %}
+    {% if request.args.get("message") %}
+        <div class="message">{{ request.args.get("message") }}</div>
+    {% endif %}
     <div>
-        <h1>Welcome home!</h1>
+        <table>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>TOTAL</th>
+            </tr>
+
+        </table>
     </div>
 {% endblock %}

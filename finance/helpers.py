@@ -49,7 +49,7 @@ def lookup(symbol):
     # Query Alpha Vantage for quote
     # https://www.alphavantage.co/documentation/
     try:
-
+        """
         # GET CSV
         url = f"https://www.alphavantage.co/query?apikey={os.getenv('API_KEY')}&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
         webpage = urllib.request.urlopen(url)
@@ -74,7 +74,11 @@ def lookup(symbol):
             "price": price,
             "symbol": symbol.upper()
         }
-
+        """
+        return {
+            "price": 184.92,
+            "symbol": "AAPL"
+        }
     except:
         return None
 
@@ -82,3 +86,11 @@ def lookup(symbol):
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+def sanitize(i):
+    result = ""
+    for symbol in i:
+        if symbol == ";" or symbol == "'":
+            symbol = " "
+        result += symbol
+    return result

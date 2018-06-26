@@ -1,7 +1,7 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions
@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from helpers import apology, login_required, lookup, usd, sanitize
 
 os.environ["API_KEY"] = 'JPJJ4M180WH7DV59'
+
 # Ensure environment variable is set
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
@@ -55,21 +56,18 @@ def buy():
     message = ""
     if request.method == 'POST':
         symbol = sanitize(request.form.get("symbol"))
-        stock_check = lookup(symbol)
         shares = int(sanitize(request.form.get("shares")))
         username = db.execute('SELECT username FROM users WHERE id = :id',
                     id=session["user_id"])[0]["username"]
         cash = db.execute('SELECT cash FROM users WHERE username = :user',
                 user=username)[0]["cash"]
-
-        if stock_check == None:
-            return apology("Stock not found")
-        else:
-            print(stock_check)
-            total_price = shares * stock_check["price"]
-
+        stock_check = lookup(symbol)
+        total_price = shares * stock_check["price"]
+        print(total_price)
         if symbol == '' or shares == '':
             return apology("Fields cannot be blank")
+        elif stock_check == None:
+            return apology("Stock not found")
         elif shares < 1:
             return apology("Shares amount has to be positive number")
         elif total_price > cash:
@@ -80,7 +78,6 @@ def buy():
             db.execute('UPDATE users SET cash = :cash WHERE username = :user',
                     cash=round(cash-total_price, 2), user=username)
             message = "You successfuly bought %i shares of %s for %s" % (shares, symbol, usd(total_price))
-            return redirect(url_for("index", message=message))
     return render_template("buy.html", message=message)
 
 
@@ -180,8 +177,7 @@ def register():
                 user_id = db.execute('INSERT INTO users (username, hash) VALUES (:username, :hash)',
                     username=username, hash=generate_password_hash(password))
                 # session["user_id"] = user_id
-                message = "Account has been created"
-                return redirect(url_for("login", message=message))
+                return redirect("/login")
 
     else:
         return render_template('register.html')
