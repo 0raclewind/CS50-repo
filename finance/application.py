@@ -21,12 +21,15 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Ensure responses aren't cached
+
+
 @app.after_request
 def after_request(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
+
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
@@ -45,7 +48,15 @@ db = SQL("sqlite:///finance.db")
 @login_required
 def index():
     """Show portfolio of stocks"""
-    return render_template("home.html")
+    user = db.execute('SELECT * \
+                        FROM users \
+                        WHERE id = :id', id=session["user_id"])[0]
+
+    shares = db.execute('SELECT * \
+                        FROM purchases \
+                        WHERE owner = :user', user=user["username"])
+    count = len(shares)
+    return render_template("home.html", shares=shares, count=count, user=user, usd=usd, lookup=lookup)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -54,13 +65,15 @@ def buy():
     """Buy shares of stock"""
     message = ""
     if request.method == 'POST':
-        symbol = sanitize(request.form.get("symbol"))
+        symbol = sanitize(request.form.get("symbol")).upper()
         stock_check = lookup(symbol)
         shares = int(sanitize(request.form.get("shares")))
-        username = db.execute('SELECT username FROM users WHERE id = :id',
-                    id=session["user_id"])[0]["username"]
-        cash = db.execute('SELECT cash FROM users WHERE username = :user',
-                user=username)[0]["cash"]
+        username = db.execute('SELECT username \
+                                FROM users \
+                                WHERE id = :id', id=session["user_id"])[0]["username"]
+        cash = db.execute('SELECT cash \
+                            FROM users \
+                            WHERE username = :user', user=username)[0]["cash"]
 
         if stock_check == None:
             return apology("Stock not found")
@@ -75,10 +88,23 @@ def buy():
         elif total_price > cash:
             return apology("Not enough money")
         else:
-            db.execute('INSERT INTO purchases (symbol, amount, owner) VALUES (:symbol, :amount, :user)',
-                    symbol=symbol, amount=shares, user=username)
-            db.execute('UPDATE users SET cash = :cash WHERE username = :user',
-                    cash=round(cash-total_price, 2), user=username)
+            owned = db.execute("SELECT amount \
+                                FROM purchases \
+                                WHERE owner = :user\
+                                AND \
+                                symbol = :symbol", user=username, symbol=symbol)[0]["amount"]
+            if owned:
+                db.execute("UPDATE purchases \
+                            SET amount = :shares \
+                            WHERE owner = :user \
+                            AND symbol = :symbol", shares=shares + owned, user=username, symbol=symbol)
+            else:
+                db.execute('INSERT INTO purchases (symbol, amount, owner) \
+                            VALUES (:symbol, :amount, :user)', symbol=symbol, amount=shares, user=username)
+
+            db.execute('UPDATE users \
+                        SET cash = :cash \
+                        WHERE username = :user', cash=round(cash - total_price, 2), user=username)
             message = "You successfuly bought %i shares of %s for %s" % (shares, symbol, usd(total_price))
             return redirect(url_for("index", message=message))
     return render_template("buy.html", message=message)
@@ -88,7 +114,6 @@ def buy():
 @login_required
 def history():
     """Show history of transactions"""
-
 
     return apology("TODO")
 
@@ -116,8 +141,9 @@ def login():
                           username=sanitize(request.form.get("username")))
 
         # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"],\
-            sanitize(request.form.get("password"))):
+        password = sanitize(request.form.get("password"))
+        hash_check = check_password_hash(rows[0]["hash"], password)
+        if len(rows) != 1 or not hash_check:
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
@@ -173,18 +199,21 @@ def register():
         elif password != password_repeat:
             return apology("Passwords didn't match.")
         else:
-            user = db.execute('SELECT * FROM users WHERE username = :user', user=username)
+            user = db.execute('SELECT * \
+                                FROM users \
+                                WHERE username = :user', user=username)
             if user:
                 return apology("User already exists.")
             else:
-                user_id = db.execute('INSERT INTO users (username, hash) VALUES (:username, :hash)',
-                    username=username, hash=generate_password_hash(password))
+                user_id = db.execute('INSERT INTO users (username, hash) \
+                                    VALUES (:username, :hash)', username=username, hash=generate_password_hash(password))
                 # session["user_id"] = user_id
                 message = "Account has been created"
                 return redirect(url_for("login", message=message))
 
     else:
         return render_template('register.html')
+
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
