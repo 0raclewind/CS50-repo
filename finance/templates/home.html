@@ -15,34 +15,32 @@
                     <th scope="col">Symbol</th>
                     <th scope="col">Name</th>
                     <th scope="col">Shares</th>
-                    <th scope="col">Purchased at</th>
                     <th scope="col">Current price</th>
                     <th scope="col">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
                 {% for share in shares %}
-                    {% set current = lookup(share["symbol"])["price"] %}
                     <tr>
                         <th scope="row">{{ share["symbol"] }}</th>
                         <td>{{ share["symbol"] }}</td>
                         <td>{{ share["amount"] }}</td>
-                        <td>$112.2</td>
-                        <td>{{ usd(current) }}</td>
-                        <td>{{ usd(share["amount"] * current) }}</td>
+                        <td>{{ usd(share["price"]) }}</td>
+                        <td>{{ usd(share["amount"] * share["price"]) }}</td>
                     </tr>
                 {% endfor %}
 
                 <tr>
                     <th>CASH</td>
-                    <td  colspan="4"></td>
+                    <td  colspan="3"></td>
                     <td>{{ usd(user["cash"]) }}</td>
                 </tr>
             </tbody>
             <tfoot>
                 <tr>
-                  <td scope="row" colspan="5"></td>
-                  <th>{{ usd(current) }}</th>
+                  <td scope="row" colspan="4"></td>
+                  <!--Calculate total money-->
+                  <th>{{ usd(total + user["cash"]) }}</th>
                 </tr>
             </tfoot>
         </table>

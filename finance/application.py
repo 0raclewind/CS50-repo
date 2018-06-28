@@ -52,11 +52,28 @@ def index():
                         FROM users \
                         WHERE id = :id', id=session["user_id"])[0]
 
-    shares = db.execute('SELECT * \
+    db_shares = db.execute('SELECT * \
                         FROM purchases \
                         WHERE owner = :user', user=user["username"])
+    shares = []
+    total = 0
+
+    for share in db_shares:
+        price = lookup(share["symbol"])["price"]
+        total += price * share["amount"]
+        shares.append({
+            "symbol": share["symbol"],
+            "price": price,
+            "amount": share["amount"]
+        })
+
     count = len(shares)
-    return render_template("home.html", shares=shares, count=count, user=user, usd=usd, lookup=lookup)
+    return render_template("home.html",
+                           shares=shares,
+                           count=count,
+                           user=user,
+                           usd=usd,
+                           total=total)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -73,12 +90,11 @@ def buy():
                                 WHERE id = :id', id=session["user_id"])[0]["username"]
         cash = db.execute('SELECT cash \
                             FROM users \
-                            WHERE username = :user', user=username)[0]["cash"]
-
+                            WHERE username = :user',
+                          user=username)[0]["cash"]
         if stock_check == None:
             return apology("Stock not found")
         else:
-            print(stock_check)
             total_price = shares * stock_check["price"]
 
         if symbol == '' or shares == '':
@@ -90,21 +106,31 @@ def buy():
         else:
             owned = db.execute("SELECT amount \
                                 FROM purchases \
-                                WHERE owner = :user\
+                                WHERE owner = :user \
                                 AND \
-                                symbol = :symbol", user=username, symbol=symbol)[0]["amount"]
+                                symbol = :symbol",
+                               user=username,
+                               symbol=symbol)
             if owned:
                 db.execute("UPDATE purchases \
                             SET amount = :shares \
                             WHERE owner = :user \
-                            AND symbol = :symbol", shares=shares + owned, user=username, symbol=symbol)
+                            AND symbol = :symbol",
+                           shares=shares + owned[0]["amount"],
+                           user=username,
+                           symbol=symbol)
             else:
                 db.execute('INSERT INTO purchases (symbol, amount, owner) \
-                            VALUES (:symbol, :amount, :user)', symbol=symbol, amount=shares, user=username)
+                            VALUES (:symbol, :amount, :user)',
+                           symbol=symbol,
+                           amount=shares,
+                           user=username)
 
             db.execute('UPDATE users \
                         SET cash = :cash \
-                        WHERE username = :user', cash=round(cash - total_price, 2), user=username)
+                        WHERE username = :user',
+                       cash=round(cash - total_price, 2),
+                       user=username)
             message = "You successfuly bought %i shares of %s for %s" % (shares, symbol, usd(total_price))
             return redirect(url_for("index", message=message))
     return render_template("buy.html", message=message)
@@ -206,7 +232,9 @@ def register():
                 return apology("User already exists.")
             else:
                 user_id = db.execute('INSERT INTO users (username, hash) \
-                                    VALUES (:username, :hash)', username=username, hash=generate_password_hash(password))
+                                    VALUES (:username, :hash)',
+                                     username=username,
+                                     hash=generate_password_hash(password))
                 # session["user_id"] = user_id
                 message = "Account has been created"
                 return redirect(url_for("login", message=message))
@@ -219,7 +247,15 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
-    return apology("TODO")
+    user = db.execute('SELECT username, cash \
+                        FROM users \
+                        WHERE id = :id', id=session["user_id"])[0]
+    shares = db.execute('SELECT symbol, amount \
+                        FROM purchases \
+                        WHERE owner = :owner', owner=user["username"])
+
+    print(shares)
+    return render_template("sell.html")
 
 
 def errorhandler(e):
